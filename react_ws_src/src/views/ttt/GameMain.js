@@ -26,16 +26,16 @@ export default class SetName extends Component {
 		]
 
 
-		if (this.props.game_type != 'live')
+		if (this.props.game_type !== 'live') {
 			this.state = {
 				cell_vals: {},
-				next_turn_ply: true,
+				next_turn_ply: this.isPlayerFirst(),
 				game_play: true,
 				game_stat: 'Start game'
 			}
-		else {
-			this.sock_start()
 
+		} else {
+			this.sock_start()
 			this.state = {
 				cell_vals: {},
 				next_turn_ply: true,
@@ -45,11 +45,25 @@ export default class SetName extends Component {
 		}
 	}
 
+	isPlayerFirst(){
+		const rnd = Math.random()
+		return rnd <= 0.5
+	}
+
 //	------------------------	------------------------	------------------------
 
 	componentDidMount () {
     	TweenMax.from('#game_stat', 1, {display: 'none', opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeIn})
-    	TweenMax.from('#game_board', 1, {display: 'none', opacity: 0, x:-200, y:-200, scaleX:0, scaleY:0, ease: Power4.easeIn})
+    	const handler = TweenMax.from('#game_board', 1, {display: 'none', opacity: 0, x:-200, y:-200, scaleX:0, scaleY:0, ease: Power4.easeIn})
+		// If its computers turn first wait for load in animation then play computers turn 500m later
+		if(this.state.next_turn_ply === false) {
+			handler.eventCallback('onComplete', () => {
+				setTimeout(() => {
+					this.turn_comp()
+				}, 500)
+			});
+		}
+
 	}
 
 //	------------------------	------------------------	------------------------
@@ -191,6 +205,7 @@ export default class SetName extends Component {
 
 //	------------------------	------------------------	------------------------
 
+	// Computers turn
 	turn_comp () {
 
 		let { cell_vals } = this.state
@@ -279,7 +294,7 @@ export default class SetName extends Component {
 		let set
 		let fin = true
 
-		if (this.props.game_type!='live')
+		if (this.props.game_type !== 'live')
 			this.state.game_stat = 'Play'
 
 
