@@ -19,10 +19,7 @@ export default class Ttt extends Component {
 //	------------------------	------------------------	------------------------
 
 	render () {
-
 		const {game_step} = this.state
-
-		console.log(game_step)
 
 		return (
 			<section id='TTT_game'>
@@ -42,6 +39,7 @@ export default class Ttt extends Component {
 													/>}
 					{game_step == 'start_game' && <GameMain 
 														game_type={this.state.game_type}
+														difficulty={this.state.difficulty}
 														onEndGame={this.gameEnd.bind(this)} 
 													/>}
 
@@ -61,8 +59,9 @@ export default class Ttt extends Component {
 
 //	------------------------	------------------------	------------------------
 
-	saveGameType (t) {
+	saveGameType (t, difficulty) {
 		this.state.game_type = t
+		this.state.difficulty = difficulty
 
 		this.upd_game_step()
 	}

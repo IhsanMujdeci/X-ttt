@@ -5,10 +5,10 @@ export default class SetGameType extends Component {
 	constructor (props) {
 		super(props)
 
-		this.state = {}
+		this.state = {
+			selectDifficulty: false,
+		}
 	}
-
-//	------------------------	------------------------	------------------------
 
 	render () {
 		return (
@@ -16,34 +16,36 @@ export default class SetGameType extends Component {
 
 				<h1>Choose game type</h1>
 
-				<button type='submit' onClick={this.selTypeLive.bind(this)} className='button long'><span>Live against another player <span className='fa fa-caret-right'></span></span></button>
-				
-				&nbsp;&nbsp;&nbsp;&nbsp;
+				{!this.state.selectDifficulty && <div>
+					<button type='submit' onClick={this.selTypeLive.bind(this)} className='button long'><span>Live against another player <span className='fa fa-caret-right'></span></span></button>
 
-				<button type='submit' onClick={this.selTypeComp.bind(this)} className='button long'><span>Against a computer <span className='fa fa-caret-right'></span></span></button>
+					&nbsp;&nbsp;&nbsp;&nbsp;
+
+					<button type='submit' onClick={this.selTypeCompDifficulty.bind(this)} className='button long'><span>Against a computer <span className='fa fa-caret-right'></span></span></button>
+				</div>}
+
+				{this.state.selectDifficulty && <div>
+					<button type='submit' onClick={()=>{this.selTypeComp('easy')}} className='button long'><span>Easy <span className='fa fa-caret-right'></span></span></button>
+
+					&nbsp;&nbsp;&nbsp;&nbsp;
+
+					<button type='submit' onClick={()=>{this.selTypeComp('medium')}} className='button long'><span>Medium <span className='fa fa-caret-right'></span></span></button>
+				</div>}
+
 
 			</div>
 		)
 	}
 
-//	------------------------	------------------------	------------------------
-
-	selTypeLive (e) {
-		// const { name } = this.refs
-		// const { onSetType } = this.props
-		// onSetType(name.value.trim())
-
+	selTypeLive () {
 		this.props.onSetType('live')
 	}
 
-//	------------------------	------------------------	------------------------
-
-	selTypeComp (e) {
-		// const { name } = this.refs
-		// const { onSetType } = this.props
-		// onSetType(name.value.trim())
-
-		this.props.onSetType('comp')
+	selTypeCompDifficulty(){
+		this.setState({selectDifficulty: true})
+	}
+	selTypeComp (difficulty) {
+		this.props.onSetType('comp', difficulty)
 	}
 
 }

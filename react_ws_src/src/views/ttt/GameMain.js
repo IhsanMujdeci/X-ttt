@@ -25,10 +25,14 @@ export default class SetName extends Component {
 			['c3', 'c5', 'c7']
 		]
 
+		this.cpu = this.easyCPU
+		if(props.difficulty === 'medium'){
+			this.cpu = this.mediumCPU
+		}
 
 		if (this.props.game_type !== 'live') {
 			this.state = {
-				cell_vals: {},
+				cell_vals: {c1: null, c2: null, c3: null, c4: null, c5: null, c6: null, c7: null, c8: null, c9: null},
 				next_turn_ply: this.isPlayerFirst(),
 				game_play: true,
 				game_stat: 'Start game'
@@ -119,14 +123,18 @@ export default class SetName extends Component {
 
 //	------------------------	------------------------	------------------------
 
-	render () {
-		const { cell_vals } = this.state
-		// console.log(cell_vals)
+	getPlayerName(){
+		if(this.props.game_type === 'comp'){
+			return this.props.difficulty + ' ' + this.props.game_type
+		}
+		return this.props.game_type
+	}
 
+	render () {
 		return (
 			<div id='GameMain'>
 
-				<h1>Play {this.props.game_type}</h1>
+				<h1>Play {this.getPlayerName()}</h1>
 
 				<div id="game_stat">
 					<div id="game_stat_msg">{this.state.game_stat}</div>
@@ -205,28 +213,77 @@ export default class SetName extends Component {
 
 //	------------------------	------------------------	------------------------
 
+	/*
+	1 2 3
+	4 5 6
+	7 8 9
+	 */
+
+	// we dont just want empty cells
+	// we want to know which cells are used by who
+
+	/*
+	 * 1:x, 2:x
+	 */
+	mediumCPU(emptyCells){
+
+		if(emptyCells > 7){
+			return this.easyCPU(emptyCells)
+		}
+
+		const cell_vals = this.state.cell_vals
+
+		for(const w of this.win_sets){
+			let foundCount = 0
+			let emptyCell = null
+			for(const s of w){
+				if(cell_vals[s] === 'x'){
+					foundCount ++
+				}
+				if(cell_vals[s] === 'o'){
+					break;
+				}
+				if(cell_vals[s] === null){
+					emptyCell = s
+				}
+			}
+			if(foundCount === 2 && emptyCell){
+				return emptyCell
+			}
+		}
+
+		return this.easyCPU(emptyCells)
+	}
+
+
+	getCells(cell_vals, value){
+		const arr = []
+		for(const o in cell_vals){
+			if(cell_vals[o] === value){
+				arr.push(o)
+			}
+		}
+		return arr
+	}
+
+	getEmptyCellArr(cell_vals){
+		return this.getCells(cell_vals, null)
+	}
+
+	easyCPU(emptyCells){
+		return rand_arr_elem(emptyCells)
+	}
+
+
 	// Computers turn
 	turn_comp () {
+		let cell_vals = this.state.cell_vals
+		const empty_cells_arr = this.getEmptyCellArr(cell_vals)
 
-		let { cell_vals } = this.state
-		let empty_cells_arr = []
-
-
-		for (let i=1; i<=9; i++) 
-			!cell_vals['c'+i] && empty_cells_arr.push('c'+i)
-		// console.log(cell_vals, empty_cells_arr, rand_arr_elem(empty_cells_arr))
-
-		const c = rand_arr_elem(empty_cells_arr)
+		const c = this.cpu(empty_cells_arr)
 		cell_vals[c] = 'o'
 
 		TweenMax.from(this.refs[c], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
-
-
-		// this.setState({
-		// 	cell_vals: cell_vals,
-		// 	next_turn_ply: true
-		// })
-
 		this.state.cell_vals = cell_vals
 
 		this.check_turn()
@@ -263,19 +320,11 @@ export default class SetName extends Component {
 	turn_opp_live (data) {
 
 		let { cell_vals } = this.state
-		let empty_cells_arr = []
-
 
 		const c = data.cell_id
 		cell_vals[c] = 'o'
 
 		TweenMax.from(this.refs[c], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
-
-
-		// this.setState({
-		// 	cell_vals: cell_vals,
-		// 	next_turn_ply: true
-		// })
 
 		this.state.cell_vals = cell_vals
 
