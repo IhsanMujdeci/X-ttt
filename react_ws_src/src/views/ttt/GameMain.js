@@ -180,6 +180,12 @@ export default class SetName extends Component {
 		this.check_turn()
 	}
 
+
+	/**
+	 * With programming the computer I have gone with a very straight forward approach of programming in strict logic with little optimisation
+	 * There are methods where I could build a tree and use minimax approach to figure out optimal moves but this is slightly out of scope.
+	 */
+
 	// Hard coding an optimal tic tac toe approach
 	// will defend perfectly and will win with 2 available branches
 	// source: https://www.youtube.com/watch?v=5n2aQ3UQu9Y
@@ -256,13 +262,13 @@ export default class SetName extends Component {
 
 		}
 
-		// Subsequent turns will lead to a win if simple medium cpu rules apply
+		// Subsequent turns will lead to a win or draw if simple medium cpu rules apply
 		return this.mediumCPU(emptyCells)
 	}
 
 	// Medium cpu will look for
 	// Winning move THEN defending against opponent winning move THEN set up for winning move for next turn
-	// If none of these options are found we simply pick random
+	// If none of these options are found we simply pick random using easyCPU
 	mediumCPU(emptyCells){
 
 
