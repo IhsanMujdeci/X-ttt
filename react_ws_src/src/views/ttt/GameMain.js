@@ -187,7 +187,7 @@ export default class SetName extends Component {
 	 */
 
 	// Hard coding an optimal tic tac toe approach
-	// will defend perfectly and will win with 2 available branches
+	// will defend perfectly or will win with 2 available branches
 	// source: https://www.youtube.com/watch?v=5n2aQ3UQu9Y
 	hardCpu(emptyCells){
 
