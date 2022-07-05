@@ -25,9 +25,16 @@ export default class SetName extends Component {
 			['c3', 'c5', 'c7']
 		]
 
-		this.cpu = this.easyCPU
+		this.centreCell = 'c5'
+
+		this.sides = ['c2', 'c4', 'c6', 'c8']
+
+		this.cpu = this.easyCPU.bind(this)
 		if(props.difficulty === 'medium'){
-			this.cpu = this.mediumCPU
+			this.cpu = this.mediumCPU.bind(this)
+		}
+		if(props.difficulty === 'hard'){
+			this.cpu = this.hardCpu.bind(this)
 		}
 
 		if (this.props.game_type !== 'live') {
@@ -173,9 +180,6 @@ export default class SetName extends Component {
 //	------------------------	------------------------	------------------------
 
 	click_cell (e) {
-		// console.log(e.currentTarget.id.substr(11))
-		// console.log(e.currentTarget)
-
 		if (!this.state.next_turn_ply || !this.state.game_play) return
 
 		const cell_id = e.currentTarget.id.substr(11)
@@ -193,86 +197,188 @@ export default class SetName extends Component {
 	turn_ply_comp (cell_id) {
 
 		let { cell_vals } = this.state
-
 		cell_vals[cell_id] = 'x'
 
 		TweenMax.from(this.refs[cell_id], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
-
-
-		// this.setState({
-		// 	cell_vals: cell_vals,
-		// 	next_turn_ply: false
-		// })
-
-		// setTimeout(this.turn_comp.bind(this), rand_to_fro(500, 1000));
 
 		this.state.cell_vals = cell_vals
 
 		this.check_turn()
 	}
 
+	// Hard coding an optimal tic tac toe approach
+	// will defend perfectly and will win with 2 available branches
+	// source: https://www.youtube.com/watch?v=5n2aQ3UQu9Y
+	hardCpu(emptyCells){
+
+		// offensive turn
+		// pick a corner, default to c1 because it doesn't matter to strategy and makes programming easier
+		if(emptyCells.length === 9){
+			return 'c1'
+		}
+		const cell_vals = this.state.cell_vals
+
+		// defensive turn
+		// best defensive option is centre to protect from optimal attack
+		// if it's taken just take c1, as it's a corner and has most wining branches.
+		if(emptyCells.length === 8){
+			if(cell_vals[this.centreCell]){
+				return 'c1'
+			}
+			return this.centreCell
+		}
+
+		// offensive turn
+		// pic an adjacent corner if the space in between not taken up
+		// this sets up to take final corner
+		if(emptyCells.length === 7){
+			if(cell_vals['c2'] === null && cell_vals['c3'] === null){
+				return 'c3'
+			} else{
+				return 'c7'
+			}
+		}
+
+		// defensive turn
+		// if player can win in 1 turn we defend it
+		// else we cover one of the side cells to prevent optimal strategy attack
+		// this forces the opponent to defend our centre cell defense
+		// if we couldn't set up centre cell defence we just revert to normal mediumCPU strat
+		if(emptyCells.length === 6){
+			if(cell_vals[this.centreCell] !=='o'){
+				return this.mediumCPU(emptyCells)
+			}
+			const dMove = this.findDefensiveMove()
+			if(dMove){
+				return dMove
+			}
+			for(const s of this.sides){
+				if(cell_vals[s] === null){
+					return s
+				}
+			}
+		}
+
+		// offensive turn
+		// if we are under threat we defend
+		// else we capture the final corner cell that will lead to victory
+		if(
+			emptyCells.length === 5
+		) {
+			const dMove = this.findDefensiveMove()
+			if(dMove){
+				return dMove
+			}
+			if(!cell_vals['c3'] && !cell_vals['c2']){
+				return 'c3'
+			}
+			if(!cell_vals['c4'] && !cell_vals['c7']){
+				return 'c7'
+			}
+			if(!cell_vals['c9']){
+				return 'c9'
+			}
+			return this.mediumCPU(emptyCells)
+
+		}
+
+		// Subsequent turns will lead to a win if simple medium cpu rules apply
+		return this.mediumCPU(emptyCells)
+	}
+
 //	------------------------	------------------------	------------------------
 
-	/*
-	1 2 3
-	4 5 6
-	7 8 9
-	 */
-
-	// we dont just want empty cells
-	// we want to know which cells are used by who
-
-	/*
-	 * 1:x, 2:x
-	 */
+	// Medium cpu will look for
+	// Winning move THEN defending against opponent winning move THEN set up for winning move for next turn
+	// If none of these options are found we simply pick random
 	mediumCPU(emptyCells){
 
-		if(emptyCells > 7){
+
+		// if no moves have been made we just pick a random cell in easy cpu
+		if(emptyCells.length === 9){
 			return this.easyCPU(emptyCells)
 		}
 
-		const cell_vals = this.state.cell_vals
+		let defensiveMove
+		let oneAwayFromWinMove
 
+		const cell_vals = this.state.cell_vals
 		for(const w of this.win_sets){
-			let foundCount = 0
+			let foundXCount = 0
+			let foundOCount = 0
 			let emptyCell = null
 			for(const s of w){
 				if(cell_vals[s] === 'x'){
-					foundCount ++
+					foundXCount++
 				}
 				if(cell_vals[s] === 'o'){
-					break;
+					foundOCount++
 				}
 				if(cell_vals[s] === null){
 					emptyCell = s
 				}
 			}
-			if(foundCount === 2 && emptyCell){
+			// Shortcut to winning move
+			if(foundOCount === 2 && emptyCell){
 				return emptyCell
+			}
+			if(foundOCount === 1 && foundXCount === 0){
+				oneAwayFromWinMove = emptyCell
+			}
+			if(foundXCount === 2 && emptyCell){
+				defensiveMove = emptyCell
 			}
 		}
 
+		// If no winning move fall back to defensive move
+		if(defensiveMove){
+			return defensiveMove
+		}
+		// if no defensive move set up for next move win
+		if(oneAwayFromWinMove){
+			return oneAwayFromWinMove
+		}
+
+		// If no moves are found we default to easy cpu
 		return this.easyCPU(emptyCells)
 	}
 
+	easyCPU(emptyCells){
+		return rand_arr_elem(emptyCells)
+	}
 
-	getCells(cell_vals, value){
+
+	findDefensiveMove(){
+		const cell_vals = this.state.cell_vals
+		for(const w of this.win_sets){
+			let foundXCount = 0
+			let emptyCell = null
+			for(const s of w){
+				if(cell_vals[s] === 'x'){
+					foundXCount++
+				}
+				if(cell_vals[s] === null){
+					emptyCell = s
+				}
+			}
+			if(foundXCount === 2 && emptyCell){
+				return emptyCell
+			}
+		}
+		return null
+	}
+
+
+	getEmptyCellArr(cell_vals){
 		const arr = []
 		for(const o in cell_vals){
-			if(cell_vals[o] === value){
+			if(cell_vals[o] === null){
 				arr.push(o)
 			}
 		}
 		return arr
 	}
 
-	getEmptyCellArr(cell_vals){
-		return this.getCells(cell_vals, null)
-	}
-
-	easyCPU(emptyCells){
-		return rand_arr_elem(emptyCells)
-	}
 
 
 	// Computers turn
@@ -303,12 +409,6 @@ export default class SetName extends Component {
 
 		this.socket.emit('ply_turn', { cell_id: cell_id });
 
-		// this.setState({
-		// 	cell_vals: cell_vals,
-		// 	next_turn_ply: false
-		// })
-
-		// setTimeout(this.turn_comp.bind(this), rand_to_fro(500, 1000));
 
 		this.state.cell_vals = cell_vals
 

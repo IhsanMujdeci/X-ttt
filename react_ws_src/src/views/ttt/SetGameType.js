@@ -30,6 +30,7 @@ export default class SetGameType extends Component {
 					&nbsp;&nbsp;&nbsp;&nbsp;
 
 					<button type='submit' onClick={()=>{this.selTypeComp('medium')}} className='button long'><span>Medium <span className='fa fa-caret-right'></span></span></button>
+					<button type='submit' onClick={()=>{this.selTypeComp('hard')}} className='button long'><span>Hard <span className='fa fa-caret-right'></span></span></button>
 				</div>}
 
 
