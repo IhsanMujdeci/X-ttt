@@ -49,7 +49,7 @@ export default class SetName extends Component {
 		} else {
 			this.sock_start()
 			this.state = {
-				cell_vals: {},
+				cell_vals: {c1: null, c2: null, c3: null, c4: null, c5: null, c6: null, c7: null, c8: null, c9: null},
 				next_turn_ply: true,
 				game_play: false,
 				game_stat: 'Connecting'
@@ -101,17 +101,6 @@ export default class SetName extends Component {
 		this.socket.on('opp_turn', this.turn_opp_live.bind(this));
 	}
 
-
-	cell_cont (c) {
-		const { cell_vals } = this.state
-
-		return <div>
-			{cell_vals && cell_vals[c] === 'x' && <i className="fa fa-times fa-5x"/>}
-			{cell_vals && cell_vals[c] === 'o' && <i className="fa fa-circle-o fa-5x"/>}
-		</div>
-	}
-
-
 	getPlayerName(){
 		if(this.props.game_type === 'comp'){
 			return this.props.difficulty + ' ' + this.props.game_type
@@ -132,14 +121,7 @@ export default class SetName extends Component {
 	}
 
 	turn_ply_comp (cell_id) {
-		let { cell_vals } = this.state
-		cell_vals[cell_id] = 'x'
-
-		TweenMax.from(this.refs[cell_id], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
-
-		this.state.cell_vals = cell_vals
-
-		this.check_turn()
+		this.setCell(cell_id, 'x')
 	}
 
 
@@ -147,7 +129,6 @@ export default class SetName extends Component {
 	 * With programming the computer I have gone with a very straight forward approach of programming in strict logic with little optimisation
 	 * There are methods where I could build a tree and use minimax approach to figure out optimal moves but this is slightly out of scope.
 	 */
-
 	// Hard coding an optimal tic tac toe approach
 	// will defend perfectly or will win with 2 available branches
 	// source: https://www.youtube.com/watch?v=5n2aQ3UQu9Y
@@ -303,7 +284,8 @@ export default class SetName extends Component {
 		return null
 	}
 
-	getEmptyCellArr(cell_vals){
+	getEmptyCellArr(){
+		const cell_vals = this.state.cell_vals
 		const arr = []
 		for(const o in cell_vals){
 			if(cell_vals[o] === null){
@@ -313,15 +295,16 @@ export default class SetName extends Component {
 		return arr
 	}
 
-	setCell(cell, symbol, ){
+	setCell(cell, symbol){
 		let cells = this.state.cell_vals
 		TweenMax.from(this.refs[cell], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
-		this.setState({cell_vals: Object.assign({}, cells, {[cell]: symbol})}, this.check_turn)
+		this.setState({cell_vals: Object.assign({}, cells, {[cell]: symbol})}, ()=>{
+			this.check_turn()
+		})
 	}
 
 	turn_comp () {
-		const empty_cells_arr = this.getEmptyCellArr(this.state.cell_vals)
-		const c = this.cpu(empty_cells_arr)
+		const c = this.cpu(this.getEmptyCellArr())
 		this.setCell(c, 'o')
 	}
 
@@ -342,7 +325,6 @@ export default class SetName extends Component {
 				cell_vals[set[0]] === cell_vals[set[1]] &&
 				cell_vals[set[0]] === cell_vals[set[2]]
 			) {
-				console.log(set)
 				const winner = cell_vals[set[0]] === 'x' ? 'You' : 'Opponent'
 				return {set, winner}
 			}
@@ -351,14 +333,11 @@ export default class SetName extends Component {
 	}
 
 	check_turn () {
-		const {cell_vals} = this.state
-
 		if (this.props.game_type !== 'live') {
 			this.state.game_stat = 'Play'
 		}
 
 		const winner = this.getWinner()
-		// winner found
 		if(winner){
 			for(const s of winner.set){
 				this.refs[s].classList.add('win')
@@ -373,19 +352,14 @@ export default class SetName extends Component {
 			return;
 		}
 
-		let fin = true;
-		for (let i = 1; i <= 9; i++) {
-			!cell_vals['c' + i] && (fin = false)
-		}
-
 		// No more moves and no winner
-		if (fin) {
+		if (!this.getEmptyCellArr().length) {
 			this.setState({
 				game_stat: 'Draw',
 				game_play: false
 			})
 			this.disconnectSocket()
-			return
+			return;
 		}
 
 		// If computers turn we have it makes it's move between 0.5-1.0 seconds
@@ -405,6 +379,15 @@ export default class SetName extends Component {
 	end_game () {
 		this.socket && this.socket.disconnect();
 		this.props.onEndGame()
+	}
+
+	cell_cont (c) {
+		const { cell_vals } = this.state
+
+		return <div>
+			{cell_vals && cell_vals[c] === 'x' && <i className="fa fa-times fa-5x"/>}
+			{cell_vals && cell_vals[c] === 'o' && <i className="fa fa-circle-o fa-5x"/>}
+		</div>
 	}
 
 	render () {
