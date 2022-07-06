@@ -26,15 +26,16 @@ export default class SetName extends Component {
 		]
 
 		this.centreCell = 'c5'
-
 		this.sides = ['c2', 'c4', 'c6', 'c8']
 
 		this.cpu = this.easyCPU.bind(this)
-		if(props.difficulty === 'medium'){
-			this.cpu = this.mediumCPU.bind(this)
-		}
-		if(props.difficulty === 'hard'){
-			this.cpu = this.hardCpu.bind(this)
+		switch (props.difficulty){
+			case 'medium':
+				this.cpu = this.mediumCPU.bind(this)
+				break
+			case 'hard':
+				this.cpu = this.hardCpu.bind(this)
+				break
 		}
 
 		if (this.props.game_type !== 'live') {
@@ -56,12 +57,6 @@ export default class SetName extends Component {
 		}
 	}
 
-	isPlayerFirst(){
-		const rnd = Math.random()
-		return rnd <= 0.5
-	}
-
-
 	componentDidMount () {
     	TweenMax.from('#game_stat', 1, {display: 'none', opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeIn})
     	const handler = TweenMax.from('#game_board', 1, {display: 'none', opacity: 0, x:-200, y:-200, scaleX:0, scaleY:0, ease: Power4.easeIn})
@@ -73,7 +68,16 @@ export default class SetName extends Component {
 				}, 500)
 			});
 		}
+	}
 
+	componentWillUnmount () {
+		this.socket && this.socket.disconnect();
+	}
+
+	// Flip coin to determine who goes first
+	isPlayerFirst(){
+		const rnd = Math.random()
+		return rnd < 0.5
 	}
 
 	sock_start () {
@@ -97,9 +101,6 @@ export default class SetName extends Component {
 		this.socket.on('opp_turn', this.turn_opp_live.bind(this));
 	}
 
-	componentWillUnmount () {
-		this.socket && this.socket.disconnect();
-	}
 
 	cell_cont (c) {
 		const { cell_vals } = this.state
@@ -116,45 +117,6 @@ export default class SetName extends Component {
 			return this.props.difficulty + ' ' + this.props.game_type
 		}
 		return this.props.game_type
-	}
-
-	render () {
-		return (
-			<div id='GameMain'>
-
-				<h1>Play {this.getPlayerName()}</h1>
-
-				<div id="game_stat">
-					<div id="game_stat_msg">{this.state.game_stat}</div>
-					{this.state.game_play && <div id="game_turn_msg">{this.state.next_turn_ply ? 'Your turn' : 'Opponent turn'}</div>}
-				</div>
-
-				<div id="game_board">
-					<table>
-					<tbody>
-						<tr>
-							<td id='game_board-c1' ref='c1' onClick={this.click_cell.bind(this)}> {this.cell_cont('c1')} </td>
-							<td id='game_board-c2' ref='c2' onClick={this.click_cell.bind(this)} className="vbrd"> {this.cell_cont('c2')} </td>
-							<td id='game_board-c3' ref='c3' onClick={this.click_cell.bind(this)}> {this.cell_cont('c3')} </td>
-						</tr>
-						<tr>
-							<td id='game_board-c4' ref='c4' onClick={this.click_cell.bind(this)} className="hbrd"> {this.cell_cont('c4')} </td>
-							<td id='game_board-c5' ref='c5' onClick={this.click_cell.bind(this)} className="vbrd hbrd"> {this.cell_cont('c5')} </td>
-							<td id='game_board-c6' ref='c6' onClick={this.click_cell.bind(this)} className="hbrd"> {this.cell_cont('c6')} </td>
-						</tr>
-						<tr>
-							<td id='game_board-c7' ref='c7' onClick={this.click_cell.bind(this)}> {this.cell_cont('c7')} </td>
-							<td id='game_board-c8' ref='c8' onClick={this.click_cell.bind(this)} className="vbrd"> {this.cell_cont('c8')} </td>
-							<td id='game_board-c9' ref='c9' onClick={this.click_cell.bind(this)}> {this.cell_cont('c9')} </td>
-						</tr>
-					</tbody>
-					</table>
-				</div>
-
-				<button type='submit' onClick={this.end_game.bind(this)} className='button'><span>End Game <span className='fa fa-caret-right'></span></span></button>
-
-			</div>
-		)
 	}
 
 	click_cell (e) {
@@ -191,14 +153,14 @@ export default class SetName extends Component {
 	// source: https://www.youtube.com/watch?v=5n2aQ3UQu9Y
 	hardCpu(emptyCells){
 
-		// offensive turn
+		// offensive turn 1
 		// pick a corner, default to c1 because it doesn't matter to strategy and makes programming easier
 		if(emptyCells.length === 9){
 			return 'c1'
 		}
 		const cell_vals = this.state.cell_vals
 
-		// defensive turn
+		// defensive turn 1
 		// best defensive option is centre to protect from optimal attack
 		// if it's taken just take c1, as it's a corner and has most wining branches.
 		if(emptyCells.length === 8){
@@ -208,7 +170,7 @@ export default class SetName extends Component {
 			return this.centreCell
 		}
 
-		// offensive turn
+		// offensive turn 2
 		// pic an adjacent corner if the space in between not taken up
 		// this sets up to take final corner
 		if(emptyCells.length === 7){
@@ -219,7 +181,7 @@ export default class SetName extends Component {
 			}
 		}
 
-		// defensive turn
+		// defensive turn 3
 		// if player can win in 1 turn we defend it
 		// else we cover one of the side cells to prevent optimal strategy attack
 		// this forces the opponent to defend our centre cell defense
@@ -239,12 +201,10 @@ export default class SetName extends Component {
 			}
 		}
 
-		// offensive turn
+		// offensive turn 4
 		// if we are under threat we defend
 		// else we capture the final corner cell that will lead to victory
-		if(
-			emptyCells.length === 5
-		) {
+		if(emptyCells.length === 5) {
 			const dMove = this.findDefensiveMove()
 			if(dMove){
 				return dMove
@@ -258,8 +218,6 @@ export default class SetName extends Component {
 			if(!cell_vals['c9']){
 				return 'c9'
 			}
-			return this.mediumCPU(emptyCells)
-
 		}
 
 		// Subsequent turns will lead to a win or draw if simple medium cpu rules apply
@@ -270,8 +228,6 @@ export default class SetName extends Component {
 	// Winning move THEN defending against opponent winning move THEN set up for winning move for next turn
 	// If none of these options are found we simply pick random using easyCPU
 	mediumCPU(emptyCells){
-
-
 		// if no moves have been made we just pick a random cell in easy cpu
 		if(emptyCells.length === 9){
 			return this.easyCPU(emptyCells)
@@ -321,10 +277,12 @@ export default class SetName extends Component {
 		return this.easyCPU(emptyCells)
 	}
 
+	// Randomly select available cell
 	easyCPU(emptyCells){
 		return rand_arr_elem(emptyCells)
 	}
 
+	// Finds any move that defends a 1 move away from winning position
 	findDefensiveMove(){
 		const cell_vals = this.state.cell_vals
 		for(const w of this.win_sets){
@@ -355,98 +313,93 @@ export default class SetName extends Component {
 		return arr
 	}
 
-	// Computers turn
+	setCell(cell, symbol, ){
+		let cells = this.state.cell_vals
+		TweenMax.from(this.refs[cell], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
+		this.setState({cell_vals: Object.assign({}, cells, {[cell]: symbol})}, this.check_turn)
+	}
+
 	turn_comp () {
-		let cell_vals = this.state.cell_vals
-		const empty_cells_arr = this.getEmptyCellArr(cell_vals)
-
+		const empty_cells_arr = this.getEmptyCellArr(this.state.cell_vals)
 		const c = this.cpu(empty_cells_arr)
-		cell_vals[c] = 'o'
-
-		TweenMax.from(this.refs[c], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
-		this.state.cell_vals = cell_vals
-
-		this.check_turn()
+		this.setCell(c, 'o')
 	}
 
 	turn_ply_live (cell_id) {
-
-		let { cell_vals } = this.state
-		cell_vals[cell_id] = 'x'
-
-		TweenMax.from(this.refs[cell_id], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
-
+		this.setCell(cell_id, 'x')
 		this.socket.emit('ply_turn', { cell_id });
-		this.state.cell_vals = cell_vals
-		this.check_turn()
 	}
 
-
 	turn_opp_live (data) {
-		let { cell_vals } = this.state
+		this.setCell(data.cell_id, 'o')
+	}
 
-		const c = data.cell_id
-		cell_vals[c] = 'o'
-
-		TweenMax.from(this.refs[c], 0.7, {opacity: 0, scaleX:0, scaleY:0, ease: Power4.easeOut})
-
-		this.state.cell_vals = cell_vals
-		this.check_turn()
+	getWinner(){
+		const {cell_vals} = this.state
+		for (let i = 0; i < this.win_sets.length; i++) {
+			const set = this.win_sets[i]
+			if (cell_vals[set[0]] &&
+				cell_vals[set[0]] === cell_vals[set[1]] &&
+				cell_vals[set[0]] === cell_vals[set[2]]
+			) {
+				console.log(set)
+				const winner = cell_vals[set[0]] === 'x' ? 'You' : 'Opponent'
+				return {set, winner}
+			}
+		}
+		return null
 	}
 
 	check_turn () {
+		const {cell_vals} = this.state
 
-		const { cell_vals } = this.state
-
-		let win = false
-		let set
-		let fin = true
-
-		if (this.props.game_type !== 'live')
+		if (this.props.game_type !== 'live') {
 			this.state.game_stat = 'Play'
-
-		for (let i=0; !win && i<this.win_sets.length; i++) {
-			set = this.win_sets[i]
-			if (cell_vals[set[0]] && cell_vals[set[0]]==cell_vals[set[1]] && cell_vals[set[0]]==cell_vals[set[2]])
-				win = true
 		}
 
-		for (let i=1; i<=9; i++) 
-			!cell_vals['c'+i] && (fin = false)
-
-		if (win) {
-		
-			this.refs[set[0]].classList.add('win')
-			this.refs[set[1]].classList.add('win')
-			this.refs[set[2]].classList.add('win')
-
+		const winner = this.getWinner()
+		// winner found
+		if(winner){
+			for(const s of winner.set){
+				this.refs[s].classList.add('win')
+			}
 			TweenMax.killAll(true)
 			TweenMax.from('td.win', 1, {opacity: 0, ease: Linear.easeIn})
-
 			this.setState({
-				game_stat: (cell_vals[set[0]] === 'x'?'You':'Opponent')+' win',
+				game_stat: winner.winner + ' win',
 				game_play: false
 			})
+			this.disconnectSocket()
+			return;
+		}
 
-			this.socket && this.socket.disconnect();
+		let fin = true;
+		for (let i = 1; i <= 9; i++) {
+			!cell_vals['c' + i] && (fin = false)
+		}
 
-		} else if (fin) {
-		
+		// No more moves and no winner
+		if (fin) {
 			this.setState({
 				game_stat: 'Draw',
 				game_play: false
 			})
-
-			this.socket && this.socket.disconnect();
-
-		} else {
-			this.props.game_type !== 'live' && this.state.next_turn_ply && setTimeout(this.turn_comp.bind(this), rand_to_fro(500, 1000));
-
-			this.setState({
-				next_turn_ply: !this.state.next_turn_ply
-			})
+			this.disconnectSocket()
+			return
 		}
-		
+
+		// If computers turn we have it makes it's move between 0.5-1.0 seconds
+		if (this.props.game_type !== 'live' && this.state.next_turn_ply) {
+			setTimeout(this.turn_comp.bind(this), rand_to_fro(500, 1000));
+		}
+
+		this.setState({
+			next_turn_ply: !this.state.next_turn_ply
+		})
+	}
+
+	disconnectSocket(){
+		this.socket && this.socket.disconnect();
 	}
 
 	end_game () {
@@ -454,4 +407,42 @@ export default class SetName extends Component {
 		this.props.onEndGame()
 	}
 
+	render () {
+		return (
+			<div id='GameMain'>
+
+				<h1>Play {this.getPlayerName()}</h1>
+
+				<div id="game_stat">
+					<div id="game_stat_msg">{this.state.game_stat}</div>
+					{this.state.game_play && <div id="game_turn_msg">{this.state.next_turn_ply ? 'Your turn' : 'Opponent turn'}</div>}
+				</div>
+
+				<div id="game_board">
+					<table>
+						<tbody>
+						<tr>
+							<td id='game_board-c1' ref='c1' onClick={this.click_cell.bind(this)}> {this.cell_cont('c1')} </td>
+							<td id='game_board-c2' ref='c2' onClick={this.click_cell.bind(this)} className="vbrd"> {this.cell_cont('c2')} </td>
+							<td id='game_board-c3' ref='c3' onClick={this.click_cell.bind(this)}> {this.cell_cont('c3')} </td>
+						</tr>
+						<tr>
+							<td id='game_board-c4' ref='c4' onClick={this.click_cell.bind(this)} className="hbrd"> {this.cell_cont('c4')} </td>
+							<td id='game_board-c5' ref='c5' onClick={this.click_cell.bind(this)} className="vbrd hbrd"> {this.cell_cont('c5')} </td>
+							<td id='game_board-c6' ref='c6' onClick={this.click_cell.bind(this)} className="hbrd"> {this.cell_cont('c6')} </td>
+						</tr>
+						<tr>
+							<td id='game_board-c7' ref='c7' onClick={this.click_cell.bind(this)}> {this.cell_cont('c7')} </td>
+							<td id='game_board-c8' ref='c8' onClick={this.click_cell.bind(this)} className="vbrd"> {this.cell_cont('c8')} </td>
+							<td id='game_board-c9' ref='c9' onClick={this.click_cell.bind(this)}> {this.cell_cont('c9')} </td>
+						</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<button type='submit' onClick={this.end_game.bind(this)} className='button'><span>End Game <span className='fa fa-caret-right'/></span></button>
+
+			</div>
+		)
+	}
 }
